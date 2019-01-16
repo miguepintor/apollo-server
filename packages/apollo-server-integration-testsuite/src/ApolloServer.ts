@@ -38,6 +38,9 @@ import {
 } from 'apollo-server-core';
 import { GraphQLExtension, GraphQLResponse } from 'graphql-extensions';
 import { TracingFormat } from 'apollo-tracing';
+import ApolloServerPluginResponseCache from 'apollo-server-plugin-response-cache';
+
+import { mockDate, unmockDate, advanceTimeBy } from '__mocks__/date';
 
 export function createServerInfo<AS extends ApolloServerBase>(
   server: AS,
@@ -1379,6 +1382,79 @@ export function testApolloServer<AS extends ApolloServerBase>(
         const resolverDuration = latestEndOffset - earliestStartOffset;
 
         expect(resolverDuration).not.toBeGreaterThan(tracing.duration);
+      });
+    });
+
+    describe('Response caching', () => {
+      const typeDefs = gql`
+        type Query {
+          cachedField: String @cacheControl(maxAge: 10)
+        }
+      `;
+
+      let resolverCallCount = 0;
+      const resolvers = {
+        Query: {
+          cachedField: () => {
+            resolverCallCount++;
+            return 'value';
+          },
+        },
+      };
+
+      beforeAll(() => {
+        mockDate();
+      });
+
+      afterAll(() => {
+        unmockDate();
+      });
+
+      it('basic caching', async () => {
+        const { url: uri } = await createApolloServer({
+          typeDefs,
+          resolvers,
+          plugins: [ApolloServerPluginResponseCache()],
+        });
+
+        const apolloFetch = createApolloFetch({ uri });
+
+        const fetch = async () => {
+          const result = await apolloFetch({
+            query: `{ cachedField }`,
+          });
+          expect(result.data.cachedField).toBe('value');
+        };
+
+        await fetch();
+        expect(resolverCallCount).toBe(1);
+
+        await fetch();
+        expect(resolverCallCount).toBe(1);
+
+        advanceTimeBy(5 * 1000);
+
+        await fetch();
+        expect(resolverCallCount).toBe(1);
+
+        advanceTimeBy(6 * 1000);
+        await fetch();
+        expect(resolverCallCount).toBe(2);
+
+        await fetch();
+        expect(resolverCallCount).toBe(2);
+
+        const textChangedASTUnchangedResult = await apolloFetch({
+          query: `{       cachedField           }`,
+        });
+        expect(textChangedASTUnchangedResult.data.cachedField).toBe('value');
+        expect(resolverCallCount).toBe(2);
+
+        const slightlyDifferentQueryResult = await apolloFetch({
+          query: `{alias: cachedField}`,
+        });
+        expect(slightlyDifferentQueryResult.data.alias).toBe('value');
+        expect(resolverCallCount).toBe(3);
       });
     });
   });

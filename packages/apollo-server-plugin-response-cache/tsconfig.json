@@ -7,7 +7,7 @@
   "include": ["src/**/*"],
   "exclude": ["**/__tests__", "**/__mocks__"],
   "references": [
-    { "path": "../apollo-server-core/tsconfig.requestPipelineAPI.json" },
-    { "path": "../graphql-extensions" }
+    { "path": "../apollo-server-plugin-base" },
+    { "path": "../apollo-server-caching" }
   ]
 }

@@ -10,19 +10,15 @@ import {
 
 import { GraphQLExtension, GraphQLResponse } from 'graphql-extensions';
 
+import {
+  CacheHint,
+  CacheScope,
+} from 'apollo-server-core/dist/requestPipelineAPI';
+export { CacheHint, CacheScope };
+
 export interface CacheControlFormat {
   version: 1;
   hints: ({ path: (string | number)[] } & CacheHint)[];
-}
-
-export interface CacheHint {
-  maxAge?: number;
-  scope?: CacheScope;
-}
-
-export enum CacheScope {
-  Public = 'PUBLIC',
-  Private = 'PRIVATE',
 }
 
 export interface CacheControlExtensionOptions {
@@ -123,7 +119,14 @@ export class CacheControlExtension<TContext = any>
   }
 
   format(): [string, CacheControlFormat] | undefined {
-    if (this.options.stripFormattedExtensions) return;
+    // We should have to explicitly ask leave the formatted extension in, or
+    // pass the old-school `cacheControl: true` (as interpreted by
+    // apollo-server-core/ApolloServer), in order to include the
+    // engineproxy-aimed extensions. Specifically, we want users of
+    // apollo-server-plugin-response-cache to be able to specify
+    // `cacheControl: {defaultMaxAge: 600}` without accidentally turning on the
+    // extension formatting.
+    if (this.options.stripFormattedExtensions !== false) return;
 
     return [
       'cacheControl',

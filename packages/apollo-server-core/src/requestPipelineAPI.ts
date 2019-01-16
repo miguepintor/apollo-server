@@ -20,6 +20,16 @@ import {
 } from 'graphql';
 import { KeyValueCache } from 'apollo-server-caching';
 
+export interface CacheHint {
+  maxAge?: number;
+  scope?: CacheScope;
+}
+
+export enum CacheScope {
+  Public = 'PUBLIC',
+  Private = 'PRIVATE',
+}
+
 export interface GraphQLServiceContext {
   schema: GraphQLSchema;
   schemaHash: string;
@@ -72,6 +82,8 @@ export interface GraphQLRequestContext<TContext = Record<string, any>> {
   readonly operation?: OperationDefinitionNode;
 
   readonly metrics?: GraphQLRequestMetrics;
+
+  readonly overallCachePolicy?: Required<CacheHint> | undefined;
 
   debug?: boolean;
 }
