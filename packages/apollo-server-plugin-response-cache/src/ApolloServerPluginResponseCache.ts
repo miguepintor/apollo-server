@@ -114,6 +114,10 @@ function cacheKeyString(key: CacheKey) {
   return sha(JSON.stringify(key));
 }
 
+function isGraphQLQuery(requestContext: GraphQLRequestContext<any>) {
+  return requestContext.operation!.operation === 'query';
+}
+
 export default function plugin(
   options: Options = Object.create(null),
 ): ApolloServerPlugin {
@@ -170,6 +174,10 @@ export default function plugin(
             'document' | 'operationName' | 'operation'
           >,
         ): Promise<ExecutionResult | null> {
+          if (!isGraphQLQuery(requestContext)) {
+            return null;
+          }
+
           // Call hooks. Save values which will be used in XXX as well.
           let extraCacheKeyData: any = null;
           if (options.sessionId) {
@@ -214,6 +222,9 @@ export default function plugin(
         async willSendResponse(
           requestContext: WithRequired<GraphQLRequestContext<any>, 'response'>,
         ) {
+          if (!isGraphQLQuery(requestContext)) {
+            return;
+          }
           if (options.writeToCache && !options.writeToCache(requestContext)) {
             return;
           }
