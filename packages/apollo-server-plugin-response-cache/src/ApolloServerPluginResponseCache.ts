@@ -72,13 +72,13 @@ interface Options<TContext = Record<string, any>> {
 
   // If this hook is defined and returns false, the plugin will not read
   // responses from the cache.
-  readFromCache?(
+  shouldReadFromCache?(
     requestContext: GraphQLRequestContext<TContext>,
   ): ValueOrPromise<boolean>;
 
   // If this hook is defined and returns false, the plugin will not write the
   // response to the cache.
-  writeToCache?(
+  shouldWriteToCache?(
     requestContext: GraphQLRequestContext<TContext>,
   ): ValueOrPromise<boolean>;
 }
@@ -198,7 +198,10 @@ export default function plugin(
           // Note that we set up sessionId and baseCacheKey before doing this
           // check, so that we can still write the result to the cache even if
           // we are told not to read from the cache.
-          if (options.readFromCache && !options.readFromCache(requestContext)) {
+          if (
+            options.shouldReadFromCache &&
+            !options.shouldReadFromCache(requestContext)
+          ) {
             return null;
           }
 
@@ -222,7 +225,10 @@ export default function plugin(
           if (!isGraphQLQuery(requestContext)) {
             return;
           }
-          if (options.writeToCache && !options.writeToCache(requestContext)) {
+          if (
+            options.shouldWriteToCache &&
+            !options.shouldWriteToCache(requestContext)
+          ) {
             return;
           }
 
