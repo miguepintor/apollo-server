@@ -1,4 +1,3 @@
-import { print } from 'graphql/language';
 import { ExecutionResult } from 'graphql/execution';
 
 import {
@@ -97,7 +96,7 @@ function sha(s: string) {
 }
 
 interface BaseCacheKey {
-  document: string;
+  documentText: string;
   operationName: string | null;
   variables: { [name: string]: any };
   extra: any;
@@ -188,9 +187,7 @@ export default function plugin(
           }
 
           baseCacheKey = {
-            // XXX could also have requestPipeline add the unparsed document to requestContext;
-            // can't just use requestContext.request.query because that won't be set for APQs
-            document: print(requestContext.document),
+            documentText: requestContext.documentText!,
             operationName: requestContext.operationName,
             // Defensive copy just in case it somehow gets mutated.
             variables: { ...(requestContext.request.variables || {}) },
